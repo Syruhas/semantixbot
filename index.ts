@@ -19,6 +19,7 @@ const phrasesMapping: { [key: string]: string } = {
 };
 
 const displayPhrase = (score: number): string => {
+    score = Transform(score);
     for (const range in phrasesMapping) {
         const [min, max] = range.split('-').map(Number);
         if (score >= min && score <= max) {
