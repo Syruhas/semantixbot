@@ -1,15 +1,37 @@
-async function handler(_req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
     try {
+      const url = new URL(req.url);
       const wordToFind = "chien";
-      const guess = await extractGuess(_req);
+  
+      // Extract the query parameter "text" from the URL
+      const guess = url.searchParams.get("text");
+      
+      if (!guess) {
+        return new Response("Missing query parameter: text", { status: 400 });
+      }
+  
+      // Call the similarity function with the guess
       const similarityResult = await similarity(guess, wordToFind);
       console.log(
         `Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`
       );
-      return new Response(responseBuilder(guess, similarityResult));
+  
+      // Return the HTML response
+      const responseContent = `
+        <html>
+          <body>
+            <h1>Guess: ${guess}</h1>
+            <p>Similarity score: ${similarityResult}</p>
+            <p>${responseBuilder(guess, similarityResult)}</p>
+          </body>
+        </html>`;
+      
+      return new Response(responseContent, {
+        headers: { "Content-Type": "text/html" },
+      });
     } catch (e) {
       console.error(e);
-      return new Response(`An error occurred: ${e.message}`);
+      return new Response(`An error occurred: ${e.message}`, { status: 500 });
     }
   }
   
