@@ -33,60 +33,61 @@ const displayPhrase = (score: number): string => {
 };
 
 async function handler(req: Request): Promise<Response> {
-  const sessionId = req.headers.get("cookie") || Date.now().toString();
-  let session = sessions.get(sessionId);
-  
-  if (!session) {
-    const randomWordResponse = await fetch("https://trouve-mot.fr/api/random");
-    const randomWordData = await randomWordResponse.json();
-    const wordToFind = randomWordData[0].name; // Get the random word
-    session = { word: wordToFind, history: [] };
-    sessions.set(sessionId, session);
-  }
+    const sessionId = req.headers.get("cookie") || Date.now().toString();
+    let session = sessions.get(sessionId);
 
-  const wordToFind = session.word;
-  let guess = "";
-  let similarityResult = 0;
-  let errorMessage = "";
-
-  try {
-    if (req.method === "GET") {
-      const url = new URL(req.url);
-      guess = url.searchParams.get("text") || "";
-
-      if (!guess) {
-        throw new Error("Please enter a valid word");
-      }
-
-      // Attempt to get similarity score
-      similarityResult = await similarity(guess, wordToFind);
-      console.log(`Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`);
-
-      // Store valid guesses in session history
-      session.history.push({ guess, score: similarityResult });
-      // Sort history by score in descending order
-      session.history.sort((a, b) => b.score - a.score);
-    } else {
-      throw new Error("Method Not Allowed");
+    if (!session) {
+        const randomWordResponse = await fetch("https://trouve-mot.fr/api/random");
+        const randomWordData = await randomWordResponse.json();
+        const wordToFind = randomWordData[0].name; // Get the random word
+        session = { word: wordToFind, history: [] };
+        sessions.set(sessionId, session);
     }
-  } catch (e) {
-    console.error(e.message);
-    errorMessage = e.message;  // Capture the error message to display on the page
-  }
 
-  // Generate the HTML response with either the similarity result or an error message
+    const wordToFind = session.word;
+    let guess = "";
+    let similarityResult = 0;
+    let errorMessage = "";
+
+    try {
+        if (req.method === "GET") {
+            const url = new URL(req.url);
+            guess = url.searchParams.get("text") || "";
+
+            if (!guess) {
+                throw new Error("Please enter a valid word");
+            }
+
+            // Attempt to get similarity score
+            similarityResult = await similarity(guess, wordToFind);
+            console.log(`Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`);
+
+            // Store valid guesses in session history
+            session.history.push({ guess, score: similarityResult });
+            // Sort history by score in descending order
+            session.history.sort((a, b) => b.score - a.score);
+        } else {
+            throw new Error("Method Not Allowed");
+        }
+    } catch (e) {
+        console.error(e.message);
+        errorMessage = e.message;  // Capture the error message to display on the page
+    }
+
+    // Generate the HTML response with either the similarity result or an error message
     const progressBars = session.history.map((entry) => {
-    const normalizedScore = Transform(entry.score); // Apply the transformation function here
-    const phrase = displayPhrase(entry.score); // Get the corresponding phrase
-    return `
-        <div style="width: 100%; margin: 5px 0;">
-            <div style="background-color: #77DD77; width: ${normalizedScore * 100}%; height: 20px; border-radius: 5px;"></div>
-            <span>${entry.guess} - Score: ${entry.score}</span>
-            <p>${phrase}</p> <!-- Display the phrase under each progress bar -->
-        </div>`;
+        const normalizedScore = Transform(entry.score); // Apply the transformation function here
+        const filledPercentage = normalizedScore > 1000 ? 1000 : normalizedScore; // Cap at 1000 for progress bar
+        const phrase = displayPhrase(entry.score); // Get the corresponding phrase
+        return `
+            <div style="width: 100%; margin: 5px 0;">
+                <div style="background-color: #77DD77; width: ${filledPercentage / 10}%; height: 20px; border-radius: 5px;"></div>
+                <span>${entry.guess} - Score: ${entry.score}</span>
+                <p>${phrase}</p> <!-- Display the phrase under each progress bar -->
+            </div>`;
     }).join("");
 
-  const responseContent = `
+    const responseContent = `
     <html>
       <head>
         <style>
@@ -143,48 +144,48 @@ async function handler(req: Request): Promise<Response> {
       </body>
     </html>`;
 
-  return new Response(responseContent, {
-    headers: { "Content-Type": "text/html", "Set-Cookie": sessionId },
-  });
+    return new Response(responseContent, {
+        headers: { "Content-Type": "text/html", "Set-Cookie": sessionId },
+    });
 }
 
 // Fetch a random word from the API
 const fetchRandomWord = async (): Promise<{ wordToFind: string, category: string }> => {
-  const response = await fetch("https://trouve-mot.fr/api/random");
-  const data = await response.json();
-  const wordData = data[0];  // Assuming it's always an array with one object
-  return { wordToFind: wordData.name, category: wordData.categorie };
+    const response = await fetch("https://trouve-mot.fr/api/random");
+    const data = await response.json();
+    const wordData = data[0];  // Assuming it's always an array with one object
+    return { wordToFind: wordData.name, category: wordData.categorie };
 };
 
 const similarity = async (word1: string, word2: string): Promise<number> => {
-  const body = { word1: word1, word2: word2 };
-  const similarityResponse = await fetch("http://word2vec.nicolasfley.fr/similarity", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+    const body = { word1: word1, word2: word2 };
+    const similarityResponse = await fetch("http://word2vec.nicolasfley.fr/similarity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
 
-  if (!similarityResponse.ok) {
-    const errorText = await similarityResponse.text();
-    throw new Error(`Word2Vec API error: ${similarityResponse.status} ${similarityResponse.statusText}`);
-  }
+    if (!similarityResponse.ok) {
+        const errorText = await similarityResponse.text();
+        throw new Error(`Word2Vec API error: ${similarityResponse.status} ${similarityResponse.statusText}`);
+    }
 
-  const similarityResponseJson = await similarityResponse.json();
-  if (typeof similarityResponseJson.result === 'number') {
-    return similarityResponseJson.result;
-  } else {
-    throw new Error("Unexpected response format from Word2Vec API");
-  }
+    const similarityResponseJson = await similarityResponse.json();
+    if (typeof similarityResponseJson.result === 'number') {
+        return similarityResponseJson.result;
+    } else {
+        throw new Error("Unexpected response format from Word2Vec API");
+    }
 };
 
 const responseBuilder = (word: string, similarity: number): string => {
-  if (similarity === 1) {
-    return `Well played! The word was ${word}.`;
-  } else if (similarity > 0.5) {
-    return `${word} is very close to the word, score: ${similarity}`;
-  } else {
-    return `${word} is quite far from the word, score: ${similarity}`;
-  }
+    if (similarity === 1) {
+        return `Well played! The word was ${word}.`;
+    } else if (similarity > 0.5) {
+        return `${word} is very close to the word, score: ${similarity}`;
+    } else {
+        return `${word} is quite far from the word, score: ${similarity}`;
+    }
 };
 
 Deno.serve(handler);
