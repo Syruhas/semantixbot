@@ -54,7 +54,7 @@ async function handler(_req: Request): Promise<Response> {
     const similarityResponse = await fetch(
       "http://nlp.polytechnique.fr/similarityscore",
       {
-        method: "GET",
+        method:"POST",
         headers: {
           "Content-Type": "application/json",
         },
