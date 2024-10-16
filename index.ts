@@ -1,43 +1,56 @@
 async function handler(req: Request): Promise<Response> {
-    try {
-      const wordToFind = "chien";
+    const wordToFind = "chien";
+    let guess = "";
+    let similarityResult = 0;
+    let errorMessage = "";
   
-      // Handle GET request (for browser)
+    try {
       if (req.method === "GET") {
         const url = new URL(req.url);
-        const guess = url.searchParams.get("text");
-  
+        guess = url.searchParams.get("text") || "";
+    
         if (!guess) {
-          return new Response("Missing query parameter: text", { status: 400 });
+          throw new Error("Please enter a valid word");
         }
-  
-        const similarityResult = await similarity(guess, wordToFind);
-        console.log(
-          `Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`
-        );
-  
-        const responseContent = `
-          <html>
-            <body>
-              <h1>Guess: ${guess}</h1>
-              <h1>WordToFind: ${wordToFind}</h1>
-              <p>Similarity score: ${similarityResult}</p>
-              <p>${responseBuilder(guess, similarityResult)}</p>
-            </body>
-          </html>`;
         
-        return new Response(responseContent, {
-          headers: { "Content-Type": "text/html" },
-        });
+        // Attempt to get similarity score
+        similarityResult = await similarity(guess, wordToFind);
+        console.log(`Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`);
+      } else {
+        throw new Error("Method Not Allowed");
       }
-  
-      // If method is not GET or POST
-      return new Response("Method Not Allowed", { status: 405 });
     } catch (e) {
-      console.error(e);
-      return new Response(`An error occurred: ${e.message}`, { status: 500 });
+      // Handle any errors (e.g., missing guess, invalid similarity API response)
+      console.error(e.message);
+      errorMessage = e.message;  // Capture the error message to display on the page
     }
+  
+    // Generate the HTML response with either the similarity result or an error message
+    const responseContent = `
+      <html>
+        <body>
+          <h1>Word Guessing Game</h1>
+          <form method="GET">
+            <label for="text">Enter your guess:</label>
+            <input type="text" id="text" name="text" value="${guess}" />
+            <button type="submit">Submit</button>
+          </form>
+          
+          <h2>Guess: ${guess || "N/A"}</h2>
+          <h2>Word to find: ${wordToFind}</h2>
+          ${errorMessage 
+            ? `<p style="color: red;">Error: ${errorMessage}</p>`  // Display error message
+            : `<p>Similarity score: ${similarityResult}</p>
+               <p>${responseBuilder(guess, similarityResult)}</p>`  // Show result if no error
+          }
+        </body>
+      </html>`;
+    
+    return new Response(responseContent, {
+      headers: { "Content-Type": "text/html" },
+    });
   }
+  
   
   
   const extractGuess = async (req: Request): Promise<string> => {
