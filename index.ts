@@ -56,4 +56,4 @@ const similarity = async (word1, word2) => {
   return Number(similarityResponseJson.simscore);
 };
 
-serve(handler);
+Deno.serve(handler);
