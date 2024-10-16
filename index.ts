@@ -1,10 +1,15 @@
 const sessions = new Map<string, { wordToFind: string, category: string }>();
 
 async function handler(req: Request): Promise<Response> {
-  const sessionId = req.headers.get("cookie") || crypto.randomUUID();
+  let sessionId = req.headers.get("cookie")?.split('=')[1]; // Extract session ID from cookie
+  if (!sessionId) {
+    // Generate new session if no session ID is found
+    sessionId = crypto.randomUUID();
+  }
+
   let sessionData = sessions.get(sessionId);
-  
-  // Fetch random word and category if not in session
+
+  // Fetch random word and category if not already present in session
   if (!sessionData) {
     sessionData = await fetchRandomWord();
     sessions.set(sessionId, sessionData);
@@ -22,7 +27,7 @@ async function handler(req: Request): Promise<Response> {
       guess = url.searchParams.get("text") || "";
 
       if (url.searchParams.has("hint")) {
-        showHint = true;
+        showHint = true; // Display hint (category) when the button is pressed
       }
 
       if (!guess) {
@@ -31,14 +36,14 @@ async function handler(req: Request): Promise<Response> {
 
       // Calculate similarity score
       similarityResult = await similarity(guess, sessionData.wordToFind);
-      progressBarValue = similarityResult;  // Set progress bar based on similarity
+      progressBarValue = similarityResult;  // Update progress bar based on similarity
     } else {
       throw new Error("Method Not Allowed");
     }
   } catch (e) {
-    // Handle errors
+    // Handle errors (like invalid input or API errors)
     console.error(e.message);
-    errorMessage = e.message;  // Capture the error message
+    errorMessage = e.message;
   }
 
   // Generate the HTML response
@@ -46,38 +51,45 @@ async function handler(req: Request): Promise<Response> {
     <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-          h1 { color: #4CAF50; }
-          input { padding: 5px; }
-          button { padding: 5px 10px; margin: 5px; background-color: #4CAF50; color: white; border: none; }
-          progress { width: 100%; height: 20px; }
-          .error { color: red; }
+          body { font-family: 'Arial', sans-serif; background-color: #f2f2f2; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+          h1 { color: #4CAF50; font-size: 2em; margin-bottom: 10px; }
+          input[type="text"] { padding: 10px; border: 2px solid #d3d3d3; border-radius: 5px; font-size: 1em; width: 80%; margin-bottom: 20px; }
+          button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; }
+          button:hover { background-color: #45a049; }
+          progress { width: 100%; height: 30px; margin-top: 20px; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; }
+          progress::-webkit-progress-value { background-color: #4CAF50; }
+          progress::-moz-progress-bar { background-color: #4CAF50; }
+          .hint { font-size: 1.1em; color: #333; margin-top: 20px; }
+          .error { color: red; font-size: 1.2em; margin-top: 10px; }
+          .container { background-color: white; padding: 40px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); max-width: 500px; width: 100%; text-align: center; }
         </style>
       </head>
       <body>
-        <h1>Word Guessing Game</h1>
-        <form method="GET">
-          <label for="text">Enter your guess:</label>
-          <input type="text" id="text" name="text" value="${guess}" />
-          <button type="submit">Submit</button>
-          <button type="submit" name="hint" value="1">Hint</button>
-        </form>
-        
-        <h2>Guess: ${guess || "N/A"}</h2>
-        <h2>Word to find: ???</h2>
+        <div class="container">
+          <h1>Word Guessing Game</h1>
+          <form method="GET">
+            <label for="text">Enter your guess:</label>
+            <input type="text" id="text" name="text" value="${guess}" placeholder="Type a word here..." />
+            <br />
+            <button type="submit">Submit</button>
+            <button type="submit" name="hint" value="1">Hint</button>
+          </form>
+          
+          <h2>Guess: ${guess || "N/A"}</h2>
 
-        ${showHint ? `<p><strong>Hint:</strong> Category: ${sessionData.category}</p>` : ""}
-        ${errorMessage ? `<p class="error">Error: ${errorMessage}</p>` : `
-          <p>Similarity score: ${similarityResult}</p>
-          <p>${responseBuilder(guess, similarityResult)}</p>
-          <progress value="${progressBarValue}" max="1"></progress>`}
+          ${showHint ? `<p class="hint">Hint: Category is <strong>${sessionData.category}</strong></p>` : ""}
+          ${errorMessage ? `<p class="error">${errorMessage}</p>` : `
+            <p>Similarity score: ${similarityResult}</p>
+            <p>${responseBuilder(guess, similarityResult)}</p>
+            <progress value="${progressBarValue}" max="1"></progress>`}
+        </div>
       </body>
     </html>`;
   
   return new Response(responseContent, {
     headers: {
       "Content-Type": "text/html",
-      "Set-Cookie": `session=${sessionId}`,
+      "Set-Cookie": `session=${sessionId}; Path=/; HttpOnly`, // Set session ID in cookie
     },
   });
 }
