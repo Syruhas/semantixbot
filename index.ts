@@ -2,11 +2,7 @@
 const sessions = new Map<string, { word: string; category:string, history: { guess: string; score: number }[] }>();
 
 const Transform = (score: number): number => {
-    if (score < 0) {
-        return 0; // Very low for scores between -1 and 0
-    } else {
-        return Math.pow(score, 2) * 1000; // Exponential growth for scores between 0 and 1
-    }
+    return Math.pow(score+1, 2) * 250; // Exponential growth for scores between 0 and 1
 };
 
 const phrasesMapping: { [key: string]: string } = {
@@ -135,7 +131,7 @@ async function handler(req: Request): Promise<Response> {
     </form>
 
     <h2>Category Hint</h2>
-    <button onclick="alert('The category is: ${session.category || 'Unknown'}')">Hint</button>
+    <button type="button" onclick="alert('The category is: ${session.category || 'Unknown'}')">Hint</button>
 
     <h2>Guess: ${guess || "N/A"}</h2>
     ${errorMessage 
