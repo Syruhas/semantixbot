@@ -43,16 +43,14 @@ async function handler(_req: Request): Promise<Response> {
     }
   };
   
-  const similarity = async (word1: string, word2: string): Promise<number> => {
+  const similarity = async (wword1: string, wword2: string): Promise<number> => {
     const body = {
-      sim1: word1,
-      sim2: word2,
-      lang: "fr",
-      type: "General Word2Vec",
+      word1: wword1,
+      word2: wword2,
     };
     console.log("body", body);
     const similarityResponse = await fetch(
-      "http://nlp.polytechnique.fr/similarityscore",
+      "http://word2vec.nicolasfley.fr/similarity",
       {
         method:"POST",
         headers: {
