@@ -1,6 +1,11 @@
 // Import necessary modules for session management
 const sessions = new Map<string, { word: string; history: { guess: string; score: number }[] }>();
 
+// Non-linear transformation function
+const Transform = (score: number): number => {
+  return (score + 1) / 2; // Maps from [-1, 1] to [0, 1]
+};
+
 async function handler(req: Request): Promise<Response> {
   const sessionId = req.headers.get("cookie") || Date.now().toString();
   let session = sessions.get(sessionId);
@@ -45,10 +50,13 @@ async function handler(req: Request): Promise<Response> {
 
   // Generate the HTML response with either the similarity result or an error message
   const progressBars = session.history.map(
-    (entry) => `<div style="width: 100%; margin: 5px 0;">
-      <div style="background-color: #77DD77; width: ${entry.score * 100}%; height: 20px; border-radius: 5px;"></div>
-      <span>${entry.guess} - Score: ${entry.score}</span>
-    </div>`
+    (entry) => {
+      const normalizedScore = Transform(entry.score);
+      return `<div style="width: 100%; margin: 5px 0;">
+        <div style="background-color: #77DD77; width: ${normalizedScore * 100}%; height: 20px; border-radius: 5px;"></div>
+        <span>${entry.guess} - Score: ${entry.score}</span>
+      </div>`;
+    }
   ).join("");
 
   const responseContent = `
