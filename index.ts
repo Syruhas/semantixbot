@@ -36,7 +36,6 @@ async function handler(req: Request): Promise<Response> {
             <button type="submit">Submit</button>
           </form>
           
-          <h2>Guess: ${guess || "N/A"}</h2>
           <h2>Word to find: ${wordToFind}</h2>
           ${errorMessage 
             ? `<p style="color: red;">Error: Please enter a valid word !!</p>`  // Display error message
