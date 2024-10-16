@@ -1,39 +1,62 @@
 async function handler(req: Request): Promise<Response> {
     try {
-      const url = new URL(req.url);
       const wordToFind = "chien";
   
-      // Extract the query parameter "text" from the URL
-      const guess = url.searchParams.get("text");
-      
-      if (!guess) {
-        return new Response("Missing query parameter: text", { status: 400 });
+      // Handle GET request (for browser)
+      if (req.method === "GET") {
+        const url = new URL(req.url);
+        const guess = url.searchParams.get("text");
+  
+        if (!guess) {
+          return new Response("Missing query parameter: text", { status: 400 });
+        }
+  
+        const similarityResult = await similarity(guess, wordToFind);
+        console.log(
+          `Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`
+        );
+  
+        const responseContent = `
+          <html>
+            <body>
+              <h1>Guess: ${guess}</h1>
+              <p>Similarity score: ${similarityResult}</p>
+              <p>${responseBuilder(guess, similarityResult)}</p>
+            </body>
+          </html>`;
+        
+        return new Response(responseContent, {
+          headers: { "Content-Type": "text/html" },
+        });
       }
   
-      // Call the similarity function with the guess
-      const similarityResult = await similarity(guess, wordToFind);
-      console.log(
-        `Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`
-      );
+      // Handle POST request (for API requests)
+      if (req.method === "POST") {
+        const guess = await extractGuess(req);
+        const similarityResult = await similarity(guess, wordToFind);
+        console.log(
+          `Tried with word ${guess}, similarity is ${similarityResult}, word to find is ${wordToFind}`
+        );
+        
+        // Return JSON response for POST
+        return new Response(
+          JSON.stringify({
+            guess,
+            similarityResult,
+            message: responseBuilder(guess, similarityResult),
+          }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
   
-      // Return the HTML response
-      const responseContent = `
-        <html>
-          <body>
-            <h1>Guess: ${guess}</h1>
-            <p>Similarity score: ${similarityResult}</p>
-            <p>${responseBuilder(guess, similarityResult)}</p>
-          </body>
-        </html>`;
-      
-      return new Response(responseContent, {
-        headers: { "Content-Type": "text/html" },
-      });
+      // If method is not GET or POST
+      return new Response("Method Not Allowed", { status: 405 });
     } catch (e) {
       console.error(e);
       return new Response(`An error occurred: ${e.message}`, { status: 500 });
     }
   }
+  
   
   const extractGuess = async (req: Request): Promise<string> => {
     const contentType = req.headers.get("content-type");
