@@ -89,65 +89,65 @@ async function handler(req: Request): Promise<Response> {
     }).join("");
 
     const responseContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            background-color: #FAF3E0; /* Light pastel background */
-            color: #333;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-          }
-          h1, h2 {
-            color: #6A0572; /* Pastel purple */
-          }
-          input[type="text"] {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #6A0572;
-          }
-          button {
-            padding: 10px;
-            background-color: #6A0572; /* Pastel purple button */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-          }
-          button:hover {
-            background-color: #9B59B6; /* Darker purple on hover */
-          }
-          p {
-            margin: 10px 0;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Word Guessing Game</h1>
-        <form method="GET">
-          <label for="text">Enter your guess:</label>
-          <input type="text" id="text" name="text" value="${guess}" />
-          <button type="submit">Submit</button>
-        </form>
+<html>
+  <head>
+    <meta charset="UTF-8"> <!-- Ensure proper encoding for emojis -->
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #FAF3E0; /* Light pastel background */
+        color: #333;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+      }
+      h1, h2 {
+        color: #6A0572; /* Pastel purple */
+      }
+      input[type="text"] {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #6A0572;
+      }
+      button {
+        padding: 10px;
+        background-color: #6A0572; /* Pastel purple button */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #9B59B6; /* Darker purple on hover */
+      }
+      p {
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Word Guessing Game</h1>
+    <form method="GET">
+      <label for="text">Enter your guess:</label>
+      <input type="text" id="text" name="text" value="${guess}" />
+      <button type="submit">Submit</button>
+    </form>
 
-        <h2>Category Hint</h2>
-        <button onclick="alert('The category is: ${session.category || 'Unknown'}')">Hint</button>
+    <h2>Category Hint</h2>
+    <button onclick="alert('The category is: ${session.category || 'Unknown'}')">Hint</button>
 
+    <h2>Guess: ${guess || "N/A"}</h2>
+    ${errorMessage 
+      ? `<p style="color: red;">Error: ${errorMessage}</p>` 
+      : `<p>Similarity score: ${similarityResult}</p>
+         <p>${responseBuilder(guess, similarityResult)}</p>`
+    }
 
-        <h2>Guess: ${guess || "N/A"}</h2>
-        ${errorMessage 
-          ? `<p style="color: red;">Error: ${errorMessage}</p>` 
-          : `<p>Similarity score: ${similarityResult}</p>
-             <p>${responseBuilder(guess, similarityResult)}</p>`
-        }
-
-        <h2>Previous Guesses</h2>
-        ${progressBars}
-      </body>
-    </html>`;
+    <h2>Previous Guesses</h2>
+    ${progressBars}
+  </body>
+</html>`;
 
     return new Response(responseContent, {
         headers: { "Content-Type": "text/html", "Set-Cookie": sessionId },
