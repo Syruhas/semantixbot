@@ -20,6 +20,7 @@ async function handler(req: Request): Promise<Response> {
           <html>
             <body>
               <h1>Guess: ${guess}</h1>
+              <h1>WordToFind: ${wordToFind}</h1>
               <p>Similarity score: ${similarityResult}</p>
               <p>${responseBuilder(guess, similarityResult)}</p>
             </body>
