@@ -1,5 +1,5 @@
 // Import necessary modules for session management
-const sessions = new Map<string, { word: string; history: { guess: string; score: number }[] }>();
+const sessions = new Map<string, { word: string; category:string, history: { guess: string; score: number }[] }>();
 
 const Transform = (score: number): number => {
     if (score < 0) {
@@ -39,8 +39,9 @@ async function handler(req: Request): Promise<Response> {
     if (!session) {
         const randomWordResponse = await fetch("https://trouve-mot.fr/api/random");
         const randomWordData = await randomWordResponse.json();
-        const wordToFind = randomWordData[0].name; // Get the random word
-        session = { word: wordToFind, history: [] };
+        const wordToFind = randomWordData[0].name;
+        const categorie = randomWordData[0].categorie; // Get the random word
+        session = { word: wordToFind, category: categorie, history: [] };
         sessions.set(sessionId, session);
     }
 
@@ -131,6 +132,10 @@ async function handler(req: Request): Promise<Response> {
           <input type="text" id="text" name="text" value="${guess}" />
           <button type="submit">Submit</button>
         </form>
+
+        <h2>Category Hint</h2>
+        <button onclick="alert('The category is: ${session.category || 'Unknown'}')">Hint</button>
+
 
         <h2>Guess: ${guess || "N/A"}</h2>
         ${errorMessage 
