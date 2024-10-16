@@ -1,9 +1,35 @@
 // Import necessary modules for session management
 const sessions = new Map<string, { word: string; history: { guess: string; score: number }[] }>();
 
-// Non-linear transformation function
 const Transform = (score: number): number => {
-  return (score + 1) / 2; // Maps from [-1, 1] to [0, 1]
+    if (score < 0) {
+        return 0; // Very low for scores between -1 and 0
+    } else {
+        return Math.pow(score, 2) * 1000; // Exponential growth for scores between 0 and 1
+    }
+};
+
+const phrasesMapping: { [key: string]: string } = {
+    "0-100": "❄️ Glacial... Il fait si froid que même les pingouins sont en vacances !",
+    "101-200": "🥶 Froid... Tu es à deux doigts de geler ici, réchauffe-nous !",
+    "201-300": "😬 Tiède... On dirait que tu es sur le point de t'endormir. Réveille-toi !",
+    "301-400": "😅 Passable... Un petit effort, et tu te rapproches du réchauffement climatique !",
+    "401-500": "😌 Agréable... Ça commence à sentir le printemps, mais il y a encore du chemin !",
+    "501-600": "😊 Bon... Regarde qui a mis le thermostat à un niveau confortable !",
+    "601-700": "😎 Chaud... Tu commences à transpirer un peu, mais c’est bon signe !",
+    "701-800": "🔥 Brûlant... Tu es tellement chaud que les flammes te jalousent !",
+    "801-900": "🌟 Incandescent... Tu fais fondre les cœurs comme du chocolat au soleil !",
+    "901-1000": "✨ Éblouissant ! Avec des performances comme ça, tu es une étoile filante dans l'univers !",
+};
+
+const displayPhrase = (score: number): string => {
+    for (const range in phrasesMapping) {
+        const [min, max] = range.split('-').map(Number);
+        if (score >= min && score <= max) {
+            return phrasesMapping[range];
+        }
+    }
+    return ""; // Default case
 };
 
 async function handler(req: Request): Promise<Response> {
@@ -49,15 +75,16 @@ async function handler(req: Request): Promise<Response> {
   }
 
   // Generate the HTML response with either the similarity result or an error message
-  const progressBars = session.history.map(
-    (entry) => {
-      const normalizedScore = Transform(entry.score);
-      return `<div style="width: 100%; margin: 5px 0;">
-        <div style="background-color: #77DD77; width: ${normalizedScore * 100}%; height: 20px; border-radius: 5px;"></div>
-        <span>${entry.guess} - Score: ${entry.score}</span>
-      </div>`;
-    }
-  ).join("");
+    const progressBars = session.history.map((entry) => {
+    const normalizedScore = Transform(entry.score); // Apply the transformation function here
+    const phrase = displayPhrase(entry.score); // Get the corresponding phrase
+    return `
+        <div style="width: 100%; margin: 5px 0;">
+            <div style="background-color: #77DD77; width: ${normalizedScore * 100}%; height: 20px; border-radius: 5px;"></div>
+            <span>${entry.guess} - Score: ${entry.score}</span>
+            <p>${phrase}</p> <!-- Display the phrase under each progress bar -->
+        </div>`;
+    }).join("");
 
   const responseContent = `
     <html>
