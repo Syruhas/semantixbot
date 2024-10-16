@@ -108,7 +108,7 @@ async function handler(req: Request): Promise<Response> {
     console.log("similarityResponse", similarityResponse);
     const similarityResponseJson = await similarityResponse.json();
     console.log("similarityValue", similarityResponseJson);
-    return Number(similarityResponseJson.simscore);
+    return Number(similarityResponseJson.result);
   };
   
   Deno.serve(handler);
