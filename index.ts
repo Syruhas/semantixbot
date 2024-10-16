@@ -19,7 +19,6 @@ const phrasesMapping: { [key: string]: string } = {
 };
 
 const displayPhrase = (score: number): string => {
-    score = Transform(score);
     for (const range in phrasesMapping) {
         const [min, max] = range.split('-').map(Number);
         if (score >= min && score <= max) {
@@ -74,8 +73,7 @@ async function handler(req: Request): Promise<Response> {
 
     // Generate the HTML response with either the similarity result or an error message
     const progressBars = session.history.map((entry) => {
-        const normalizedScore = Transform(entry.score); // Apply the transformation function here
-        const filledPercentage = normalizedScore > 1000 ? 1000 : normalizedScore; // Cap at 1000 for progress bar
+        const filledPercentage = entry.score > 1000 ? 1000 : entry.score; // Cap at 1000 for progress bar
         const phrase = displayPhrase(entry.score); // Get the corresponding phrase
         return `
             <div style="width: 100%; margin: 5px 0;">
@@ -174,7 +172,7 @@ const similarity = async (word1: string, word2: string): Promise<number> => {
 
     const similarityResponseJson = await similarityResponse.json();
     if (typeof similarityResponseJson.result === 'number') {
-        return similarityResponseJson.result;
+        return Transform(similarityResponseJson.result);
     } else {
         throw new Error("Unexpected response format from Word2Vec API");
     }
